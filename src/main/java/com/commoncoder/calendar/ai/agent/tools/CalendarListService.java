@@ -2,11 +2,13 @@ package com.commoncoder.calendar.ai.agent.tools;
 
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.CalendarList;
+import com.google.api.services.calendar.model.CalendarListEntry;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.ListUserCalendarsTool;
+import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.GetUserCalendarListEntryTool;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -76,5 +78,15 @@ public class CalendarListService {
       list.setSyncToken(syncToken);
     }
     return list.execute();
+  }
+
+  @Tool(
+      name = GetUserCalendarListEntryTool.TOOL_NAME,
+      description = GetUserCalendarListEntryTool.TOOL_DESCRIPTION)
+  CalendarListEntry getCalendarListEntry(
+      @ToolParam(description = GetUserCalendarListEntryTool.ToolParamDescriptions.CALENDAR_ID)
+          String calendarId)
+      throws IOException {
+    return calendar.calendarList().get(calendarId).execute();
   }
 }
