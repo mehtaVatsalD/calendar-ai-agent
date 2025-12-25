@@ -27,4 +27,36 @@ public class ToolDescriptions {
           "Token obtained from the nextSyncToken field of a previous list request. It is used to get only the entries that have changed since then. Optional.";
     }
   }
+
+  public static class ListEventsTool {
+    public static final String TOOL_NAME = "list_events";
+    public static final String TOOL_DESCRIPTION = "Returns events on the specified calendar.";
+
+    public static class ToolParamDescriptions {
+      public static final String CALENDAR_ID = "Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the 'primary' keyword. Required.";
+
+      public static final String Q = "Free text search terms to find events that match these terms in fields like summary, description, location, attendee names/emails, etc. Optional.";
+
+      public static final String TIME_MIN = "Lower bound (exclusive) for an event's end time to filter by. Must be an RFC3339 timestamp with mandatory time zone offset (e.g., 2011-06-03T10:00:00Z). Optional.";
+
+      public static final String TIME_MAX = "Upper bound (exclusive) for an event's start time to filter by. Must be an RFC3339 timestamp with mandatory time zone offset (e.g., 2011-06-03T10:00:00Z). Optional.";
+
+      public static final String MAX_RESULTS = "Maximum number of events returned on one result page. By default the value is 250 events. The page size can never be larger than 2500 events. Optional.";
+
+      public static final String SINGLE_EVENTS = "Whether to expand recurring events into instances and only return single one-off events and instances of recurring events. The default is False. Optional.";
+
+      public static final String ORDER_BY = "The order of the events returned in the result. Acceptable values are 'startTime' (only if singleEvents is True) or 'updated'. Optional.";
+
+      public static final String EVENT_TYPES = "Event types to return. Acceptable values are: 'birthday', 'default', 'focusTime', 'fromGmail', 'outOfOffice', 'workingLocation'. Optional.";
+
+      public static final String SHOW_DELETED = "Whether to include deleted events (status equals 'cancelled') in the result. The default is False. Optional.";
+
+      public static final String PAGE_TOKEN = "Token specifying which result page to return from a previous list request. Optional.";
+
+      public static final String TIME_ZONE = "Time zone used in the response. The default is the time zone of the calendar. Optional.";
+
+      public static final String UPDATED_MIN = "Lower bound for an event's last modification time (RFC3339 timestamp) to filter by. Optional.";
+
+    }
+  }
 }
