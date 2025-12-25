@@ -1,12 +1,12 @@
 package com.commoncoder.calendar.ai.agent.controller;
 
+import com.commoncoder.calendar.ai.agent.tools.CalendarListService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.ZoneId;
@@ -30,24 +30,21 @@ class TimeService {
 public class SampleAIController {
 
   private final ChatClient.Builder clientBuilder;
+  private final CalendarListService calendarListService;
 
   @Autowired
-  public SampleAIController(ChatClient.Builder clientBuilder) {
+  public SampleAIController(
+      ChatClient.Builder clientBuilder, CalendarListService calendarListService) {
     this.clientBuilder = clientBuilder;
+    this.calendarListService = calendarListService;
   }
 
   @GetMapping("/ai")
-  public String getAIResponse(@RequestParam String q) {
+  public String getAIResponse() {
     ChatClient client = clientBuilder.build();
     return client
-        .prompt(
-            Prompt.builder()
-                .content(
-                    "User might provide name of some location like city, state area etc. Get to know the timezone of the same before answering. What is current date and time in  "
-                        + q
-                        + "?")
-                .build())
-        .tools(new TimeService())
+        .prompt(Prompt.builder().content("Provide the name and summary of all the calendars I have").build())
+        .tools(calendarListService)
         .call()
         .content();
   }
