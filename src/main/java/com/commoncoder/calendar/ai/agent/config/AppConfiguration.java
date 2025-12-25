@@ -11,6 +11,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
+import com.google.api.services.calendar.Calendar;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -73,5 +74,13 @@ public class AppConfiguration {
             .build();
     LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
     return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+  }
+
+  @Bean
+  public Calendar getCalendarService(
+      HttpTransport httpTransport, JsonFactory jsonFactory, Credential credential) {
+    return new Calendar.Builder(httpTransport, jsonFactory, credential)
+        .setApplicationName("CalendarAIAgent")
+        .build();
   }
 }
