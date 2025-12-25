@@ -15,6 +15,12 @@ https://www.googleapis.com/auth/calendar.readonly
 https://www.googleapis.com/auth/calendar.events
 ```
 
+## App Local Setup
+
+### Set environment variables
+
+CALENDAR_AI_AGENT_CLIENT_ID=replace_this_fake_client_id;CALENDAR_AI_AGENT_CLIENT_SECRET=replace_this_fake_client_secret
+
 ## Google Calendar API: Postman Setup & Testing Guide
 
 This guide outlines the steps to authenticate and test Google Calendar API endpoints using Postman via OAuth 2.0.
