@@ -30,7 +30,7 @@ public class ToolDescriptions {
 
   public static class ListEventsTool {
     public static final String TOOL_NAME = "list_events";
-    public static final String TOOL_DESCRIPTION = "Returns events on the specified calendar.";
+    public static final String TOOL_DESCRIPTION = "Returns events on the specified calendar. An event is an object associated with a specific date or time range. Events are identified by a unique ID. Besides a start and end date-time, events contain other data such as summary, description, location, status, reminders, attachments, etc.";
 
     public static class ToolParamDescriptions {
       public static final String CALENDAR_ID = "Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the 'primary' keyword. Required.";
