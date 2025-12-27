@@ -76,7 +76,7 @@ public class ToolDescriptions {
           "Token specifying which result page to return from a previous list request. Optional.";
 
       public static final String TIME_ZONE =
-          "Time zone used in the response. The default is the time zone of the calendar. Optional.";
+          "Time zone in which all date and times of the vents are to be fetched. The default is the time zone of the calendar. Optional.";
 
       public static final String UPDATED_MIN =
           "Lower bound for an event's last modification time (RFC3339 timestamp) to filter by. Optional.";

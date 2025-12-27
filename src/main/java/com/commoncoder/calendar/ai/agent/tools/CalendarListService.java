@@ -1,17 +1,16 @@
 package com.commoncoder.calendar.ai.agent.tools;
 
+import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.GetUserCalendarListEntryTool;
+import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.ListUserCalendarsTool;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.CalendarList;
 import com.google.api.services.calendar.model.CalendarListEntry;
+import java.io.IOException;
+import javax.annotation.Nullable;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.ListUserCalendarsTool;
-import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.GetUserCalendarListEntryTool;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
 
 @Service
 public class CalendarListService {
