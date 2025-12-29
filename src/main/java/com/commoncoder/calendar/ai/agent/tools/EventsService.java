@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EventsService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventsService.class);
 
   private final Calendar calendar;
 
@@ -60,9 +64,11 @@ public class EventsService {
           @Nullable
           String updatedMin)
       throws IOException {
-    System.out.println(timeMin);
-    System.out.println(timeMax);
-    System.out.println(timeZone);
+    LOGGER.debug(
+        "listEvents called with timeMin: {}, timeMax: {}, timezone: {}",
+        timeMin,
+        timeMax,
+        timeZone);
     Calendar.Events.List list = calendar.events().list(calendarId);
     if (q != null && !q.isEmpty()) {
       list.setQ(q);
@@ -108,6 +114,7 @@ public class EventsService {
           String calendarId,
       @ToolParam(description = "Event request body") InsertEventRequest insertEventRequest)
       throws IOException {
+    LOGGER.debug("insertEvent called");
     Event event = new Event();
     event.setSummary(insertEventRequest.summary());
 

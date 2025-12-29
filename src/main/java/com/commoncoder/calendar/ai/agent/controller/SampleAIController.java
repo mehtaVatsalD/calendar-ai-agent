@@ -100,7 +100,7 @@ public class SampleAIController {
              "RRULE:FREQ=WEEKLY;UNTIL=20261231;COUNT=52"
           ],
           …
-          
+
           """;
 
   private final ChatClient.Builder clientBuilder;

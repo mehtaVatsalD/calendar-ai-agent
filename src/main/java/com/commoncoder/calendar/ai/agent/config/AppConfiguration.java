@@ -1,6 +1,5 @@
 package com.commoncoder.calendar.ai.agent.config;
 
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import com.commoncoder.calendar.ai.agent.annotations.CalendarAPIScopes;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
@@ -19,16 +18,21 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.StreamUtils;
 
 @Configuration
 public class AppConfiguration {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AppConfiguration.class);
 
   @Value("${calendar.ai-agent.client-id}")
   private String clientId;
@@ -92,23 +96,17 @@ public class AppConfiguration {
   @Bean
   public RestClientCustomizer restClientCustomizer() {
     return restClientBuilder -> {
-      // Use the factory that supports buffering
-      restClientBuilder.requestFactory(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
-
-      // Add your logging interceptor
-      restClientBuilder.requestInterceptor((request, body, execution) -> {
-        System.out.println("Request: " + new String(body, StandardCharsets.UTF_8));
-
-        ClientHttpResponse response = execution.execute(request, body);
-
-        // Now you can read the body here safely because it's buffered
-        String responseBody = StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
-        System.out.println("Response: " + responseBody);
-
-        return response;
-      });
+      restClientBuilder.requestFactory(
+          new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+      restClientBuilder.requestInterceptor(
+          (request, body, execution) -> {
+            LOGGER.debug("Request: " + new String(body, StandardCharsets.UTF_8));
+            ClientHttpResponse response = execution.execute(request, body);
+            String responseBody =
+                StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
+            LOGGER.debug("Response: " + responseBody);
+            return response;
+          });
     };
   }
-
-
 }
