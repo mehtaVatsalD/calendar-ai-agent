@@ -1,10 +1,13 @@
-package com.commoncoder.calendar.ai.agent.tools.model;
+package com.commoncoder.calendar.ai.agent.tools.request;
 
+import com.commoncoder.calendar.ai.agent.tools.model.Attendee;
+import com.commoncoder.calendar.ai.agent.tools.model.DateTime;
+import com.commoncoder.calendar.ai.agent.tools.model.RemindersOverrides;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.springframework.ai.tool.annotation.ToolParam;
 
-public record InsertEventRequestBody(
+public record InsertEventRequest(
     @ToolParam(description = "Title of the event.") String summary,
     @ToolParam(
             description = "Description of the event. Can contain HTML. Optional.",

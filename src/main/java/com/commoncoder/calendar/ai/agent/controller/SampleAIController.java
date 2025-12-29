@@ -2,113 +2,13 @@ package com.commoncoder.calendar.ai.agent.controller;
 
 import com.commoncoder.calendar.ai.agent.tools.CalendarListService;
 import com.commoncoder.calendar.ai.agent.tools.EventsService;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
+import com.commoncoder.calendar.ai.agent.tools.TimeService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-class TimeService {
-
-  @Tool(
-      name = "get_current_datetime",
-      description = "Helps in getting current time given a timezone.")
-  public String getCurrentTime(
-      @ToolParam(description = "Timezone for which current time is to be queried.")
-          String timezone) {
-    ZoneId zoneId = ZoneId.of(timezone);
-    ZonedDateTime now = ZonedDateTime.now(zoneId);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    System.out.println(now.format(formatter));
-    return now.format(formatter);
-  }
-
-  @Tool(name = "get_current_date", description = "Helps in getting current date given a timezone.")
-  public String getCurrentDate(
-      @ToolParam(description = "Timezone for which current date is to be queried.")
-          String timezone) {
-    ZoneId zoneId = ZoneId.of(timezone);
-    ZonedDateTime now = ZonedDateTime.now(zoneId);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    System.out.println(now.format(formatter));
-    return now.format(formatter);
-  }
-
-  public record DateTime(Long value, Boolean dateOnly, Integer timeZoneShift) {}
-
-  @Tool(
-      name = "datetime_to_user_readable",
-      description =
-          "Converts datetime objects containing dateTime value, dateOnly, timeZoneShift to strings which are user readable.")
-  public List<String> datetimeToUserReadable(
-      @ToolParam(
-              description =
-                  "List of objects containing datetime or date in epoch milliseconds, dateOnly field and timeZoneShift fields to be converted into user readable strings")
-          List<DateTime> dateTimes) {
-    System.out.println("datetimeToUserReadable");
-    return parseRfc3339(
-        dateTimes.stream()
-            .map(
-                dateTime ->
-                    new com.google.api.client.util.DateTime(
-                            dateTime.dateOnly(), dateTime.value(), dateTime.timeZoneShift())
-                        .toStringRfc3339())
-            .toList());
-  }
-
-  List<String> parseRfc3339(List<String> rfc3339Strings) {
-    System.out.println("rfc3339: " + rfc3339Strings.toString());
-    return rfc3339Strings.stream()
-        .map(
-            rfc3339String -> {
-              // 1. Parse the RFC 3339 string
-              // This handles 'Z' or +/- offsets automatically
-              OffsetDateTime offsetDateTime = OffsetDateTime.parse(rfc3339String);
-
-              // 2. Format the Date: [Full Month Name] [Day], [Year]
-              DateTimeFormatter dateFormatter =
-                  DateTimeFormatter.ofPattern("MMMM dd, yyyy", Locale.ENGLISH);
-              String datePart = offsetDateTime.toLocalDateTime().format(dateFormatter);
-
-              // 3. Format the Time: [12-hour clock with AM/PM]
-              // This extracts exactly what is between 'T' and the offset
-              DateTimeFormatter timeFormatter =
-                  DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
-              String timePart = offsetDateTime.toLocalDateTime().format(timeFormatter);
-
-              // 4. Handle the Timezone description
-              String offsetId = offsetDateTime.getOffset().getId();
-              String tzDescription;
-
-              if (offsetId.equals("Z") || offsetId.equals("+00:00") || offsetId.equals("-00:00")) {
-                tzDescription = "UTC (Coordinated Universal Time)";
-              } else {
-                int totalSeconds = offsetDateTime.getOffset().getTotalSeconds();
-                int hours = Math.abs(totalSeconds) / 3600;
-                int minutes = (Math.abs(totalSeconds) % 3600) / 60;
-                String direction = totalSeconds >= 0 ? "ahead of" : "behind";
-                tzDescription =
-                    String.format(
-                        "%s (%d hours and %d minutes %s UTC)", offsetId, hours, minutes, direction);
-              }
-
-              // 5. Build final string
-              return String.format(
-                  "**Date:** %s\n**Time:** %s\n**Timezone:** %s",
-                  datePart, timePart, tzDescription);
-            })
-        .toList();
-  }
-}
 
 @RestController
 public class SampleAIController {
@@ -124,20 +24,15 @@ public class SampleAIController {
 
           # OPERATIONAL PROTOCOL
           1. **Implicit Execution:** Unless the user explicitly asks for a plan or confirmation, execute the necessary tools immediately.
-          2. Internally identify and output the sequence of planned tasks that you will execute abd then execute them.
+          2. Internally identify and output the sequence of planned tasks that you will execute and then execute them.
           3. **Timezone:** If the user has not provided any specific timezone, ALWAYS get the timezone of user's primary calendar using 'get_user_calendar_list_entry' to answer any availability queries, listing events or creating any new event.
           You have to use correct timezone to fetch the data and not convert the out to expected timezone yourself.
-          4. **Dates and time**:
+          4. **Dates and time**: All input and output date and date-times should strictly follow RFC3339 format.
           5. When checking availability, always set `singleEvents=true`. This is critical to ensure recurring events are expanded into individual instances to identify true overlaps.
           6. **Reminders** When creating an event, don't add any reminders overrides, unless asked explicitly by users. Even if asked by users, check that they are not default as default values can be set in overrides.
-          7. When asked for scheduling/creating new events, Please create new event, and  don't check for list existing events unless you are asked to check for user's availability. You can setup meeting at requested time even if user is busy at that time if explicitly asked by the user.
-          8. You should always fetch current date/time and then derive dates for queries like today,yesterday,tomorrow,day after tomorrow, day before yesterday, next week etc.
-          9. For creating recurring event, first create the recurrence rules and internally check, reflect and think if they are valid as per knowledge given below. If not retry and create valid rules.
-          10.Time range should be valid for creating events i.e. end time should be greater than start time. Internally check, reflect and think if they are valid. Sometimes user can be multi day events like starting 11pm and last 2 hours. so it ends at 1am next day.
-          11. You should use event's 'start' and 'end' to know start and end of the event. If 'dateTime' if present, you should user 'dateTime' else considering event to be full day event you should use 'date' for knowing interval of the event.
-          When summarizing the event you should provide both start and end intervals.
-          For outputting event's start and end datetime or date objects to user readable string, ALWAYS use 'datetime_to_user_readable' tool and don't convert it yourself.
-          122. Before responding final response to user, ALWAYS collect all the datetime/date objects and send it to 'datetime_to_user_readable' tool to convert it to user-readable strings.
+          7. When asked for scheduling/creating new events, Please literally create new event, and  don't check for list existing events unless you are asked to check for user's availability. You can setup meeting at requested time even if user is busy at that time if explicitly asked by the user.
+          8. For creating recurring event, first create the recurrence rules and internally check, reflect and think if they are valid as per knowledge given below. If not retry and create valid rules.
+          9. Time range should be valid for creating events i.e. end time should be greater than start time. Internally check, reflect and think if they are valid. Sometimes user can be multi day events like starting 11pm and last 2 hours. so it ends at 1am next day.
 
           # TECHNICAL SPECIFICATIONS
           - **Calendar vs. List:** - Use `CalendarList` for user-specific UI settings (colors, hidden calendars).
@@ -205,20 +100,24 @@ public class SampleAIController {
              "RRULE:FREQ=WEEKLY;UNTIL=20261231;COUNT=52"
           ],
           …
+          
           """;
 
   private final ChatClient.Builder clientBuilder;
   private final CalendarListService calendarListService;
   private final EventsService eventsService;
+  private final TimeService timeService;
 
   @Autowired
   public SampleAIController(
       ChatClient.Builder clientBuilder,
       CalendarListService calendarListService,
-      EventsService eventsService) {
+      EventsService eventsService,
+      TimeService timeService) {
     this.clientBuilder = clientBuilder;
     this.calendarListService = calendarListService;
     this.eventsService = eventsService;
+    this.timeService = timeService;
   }
 
   @GetMapping("/ai")
@@ -229,7 +128,7 @@ public class SampleAIController {
             .prompt()
             .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
             .user(q)
-            .tools(new TimeService(), calendarListService, eventsService)
+            .tools(timeService, calendarListService, eventsService)
             .advisors(new SimpleLoggerAdvisor())
             .call();
     return v.content();
