@@ -1,5 +1,6 @@
 package com.commoncoder.calendar.ai.agent.config;
 
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import com.commoncoder.calendar.ai.agent.annotations.CalendarAPIScopes;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
@@ -13,13 +14,18 @@ import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.util.StreamUtils;
 
 @Configuration
 public class AppConfiguration {
@@ -82,4 +88,27 @@ public class AppConfiguration {
         .setApplicationName("CalendarAIAgent")
         .build();
   }
+
+  @Bean
+  public RestClientCustomizer restClientCustomizer() {
+    return restClientBuilder -> {
+      // Use the factory that supports buffering
+      restClientBuilder.requestFactory(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+
+      // Add your logging interceptor
+      restClientBuilder.requestInterceptor((request, body, execution) -> {
+        System.out.println("Request: " + new String(body, StandardCharsets.UTF_8));
+
+        ClientHttpResponse response = execution.execute(request, body);
+
+        // Now you can read the body here safely because it's buffered
+        String responseBody = StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
+        System.out.println("Response: " + responseBody);
+
+        return response;
+      });
+    };
+  }
+
+
 }

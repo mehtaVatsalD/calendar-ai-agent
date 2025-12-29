@@ -59,6 +59,9 @@ public class EventsService {
           @Nullable
           String updatedMin)
       throws IOException {
+    System.out.println(timeMin);
+    System.out.println(timeMax);
+    System.out.println(timeZone);
     Calendar.Events.List list = calendar.events().list(calendarId);
     if (q != null && !q.isEmpty()) {
       list.setQ(q);
@@ -93,7 +96,9 @@ public class EventsService {
     if (updatedMin != null && !updatedMin.isEmpty()) {
       list.setUpdatedMin(DateTime.parseRfc3339(updatedMin));
     }
-    return list.execute();
+    Events events = list.execute();
+    System.out.println(events);
+    return events;
   }
 
   @Tool(name = "insert_event", description = "Creates an event on the calendar.")

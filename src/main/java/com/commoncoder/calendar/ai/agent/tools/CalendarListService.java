@@ -86,6 +86,7 @@ public class CalendarListService {
       @ToolParam(description = GetUserCalendarListEntryTool.ToolParamDescriptions.CALENDAR_ID)
           String calendarId)
       throws IOException {
+    System.out.println("getCalendarListEntry called " + calendarId);
     return calendar.calendarList().get(calendarId).execute();
   }
 }
