@@ -7,6 +7,8 @@ import com.google.api.services.calendar.model.CalendarList;
 import com.google.api.services.calendar.model.CalendarListEntry;
 import java.io.IOException;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CalendarListService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CalendarListService.class);
 
   private final Calendar calendar;
 
@@ -57,6 +61,7 @@ public class CalendarListService {
           @Nullable
           String syncToken)
       throws IOException {
+    LOGGER.debug("listCalendarList called");
     Calendar.CalendarList.List list = calendar.calendarList().list();
     if (maxResults != null && maxResults > 0) {
       list.setMaxResults(maxResults);
@@ -86,6 +91,7 @@ public class CalendarListService {
       @ToolParam(description = GetUserCalendarListEntryTool.ToolParamDescriptions.CALENDAR_ID)
           String calendarId)
       throws IOException {
+    LOGGER.debug("getCalendarListEntry called for: {}", calendarId);
     return calendar.calendarList().get(calendarId).execute();
   }
 }

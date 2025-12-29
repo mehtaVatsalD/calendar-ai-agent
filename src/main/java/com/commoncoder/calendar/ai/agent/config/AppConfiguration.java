@@ -13,16 +13,26 @@ import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.util.StreamUtils;
 
 @Configuration
 public class AppConfiguration {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AppConfiguration.class);
 
   @Value("${calendar.ai-agent.client-id}")
   private String clientId;
@@ -81,5 +91,22 @@ public class AppConfiguration {
     return new Calendar.Builder(httpTransport, jsonFactory, credential)
         .setApplicationName("CalendarAIAgent")
         .build();
+  }
+
+  @Bean
+  public RestClientCustomizer restClientCustomizer() {
+    return restClientBuilder -> {
+      restClientBuilder.requestFactory(
+          new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+      restClientBuilder.requestInterceptor(
+          (request, body, execution) -> {
+            LOGGER.debug("Request: " + new String(body, StandardCharsets.UTF_8));
+            ClientHttpResponse response = execution.execute(request, body);
+            String responseBody =
+                StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
+            LOGGER.debug("Response: " + responseBody);
+            return response;
+          });
+    };
   }
 }

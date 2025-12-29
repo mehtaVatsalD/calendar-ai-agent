@@ -2,42 +2,17 @@ package com.commoncoder.calendar.ai.agent.controller;
 
 import com.commoncoder.calendar.ai.agent.tools.CalendarListService;
 import com.commoncoder.calendar.ai.agent.tools.EventsService;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
+import com.commoncoder.calendar.ai.agent.tools.TimeService;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-class TimeService {
-
-  @Tool(name = "get_current_datetime", description = "Helps in getting current time given a timezone.")
-  public String getCurrentTime(
-      @ToolParam(description = "Timezone for which current time is to be queried.")
-          String timezone) {
-    ZoneId zoneId = ZoneId.of(timezone);
-    ZonedDateTime now = ZonedDateTime.now(zoneId);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    return now.format(formatter);
-  }
-
-  @Tool(name = "get_current_date", description = "Helps in getting current date given a timezone.")
-  public String getCurrentDate(
-          @ToolParam(description = "Timezone for which current date is to be queried.")
-          String timezone) {
-    ZoneId zoneId = ZoneId.of(timezone);
-    ZonedDateTime now = ZonedDateTime.now(zoneId);
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    return now.format(formatter);
-  }
-}
-
 @RestController
 public class SampleAIController {
+
   static final String CALENDAR_MANAGEMENT_SYSTEM_PROMPT =
       """
           # ROLE
@@ -49,15 +24,17 @@ public class SampleAIController {
 
           # OPERATIONAL PROTOCOL
           1. **Implicit Execution:** Unless the user explicitly asks for a plan or confirmation, execute the necessary tools immediately.
-          2. **Analysis:** For complex requests, internally identify and output the sequence (e.g., Check timezone -> Search for conflicts -> Create event).
-          3. **Timezone Accuracy:** Always use `get_user_calendar_list_entry` to retrieve the user's primary calendar `timeZone` before answering any availability queries or having write operations, unless the user provides a specific timezone. For recurring events a single timezone must always be specified. It is needed in order to expand the recurrences of the event. For single events it is optional.
-          4. **Conflict Prevention:** When checking availability, always set `singleEvents=true`. This is critical to ensure recurring events are expanded into individual instances to identify true overlaps.
-          5. **Reminders** When creating an event, don't add any reminders overrides, unless asked explicitly by users. Even if asked by users, check that they are not default as default values can be set in overrides.
-          6. When asked for scheduling/creating new events, Please create new event, and  don't check for list existing events unless you are asked to check for user's availability. You can setup meeting at requested time even if user is busy at that time if explicitly asked by the user.
-          7. You should always fetch current date/time and then derive dates for queries like today,yesterday,tomorrow,day after tomorrow, day before yesterday, next week etc.
+          2. Internally identify and output the sequence of planned tasks that you will execute and then execute them.
+          3. **Timezone:** If the user has not provided any specific timezone, ALWAYS get the timezone of user's primary calendar using 'get_user_calendar_list_entry' to answer any availability queries, listing events or creating any new event.
+          You have to use correct timezone to fetch the data and not convert the out to expected timezone yourself.
+          4. **Dates and time**: All input and output date and date-times should strictly follow RFC3339 format.
+          5. When checking availability, always set `singleEvents=true`. This is critical to ensure recurring events are expanded into individual instances to identify true overlaps.
+          6. **Reminders** When creating an event, don't add any reminders overrides, unless asked explicitly by users. Even if asked by users, check that they are not default as default values can be set in overrides.
+          7. When asked for scheduling/creating new events, Please literally create new event, and  don't check for list existing events unless you are asked to check for user's availability. You can setup meeting at requested time even if user is busy at that time if explicitly asked by the user.
+          8. For creating recurring event, first create the recurrence rules and internally check, reflect and think if they are valid as per knowledge given below. If not retry and create valid rules.
+          9. Time range should be valid for creating events i.e. end time should be greater than start time. Internally check, reflect and think if they are valid. Sometimes user can be multi day events like starting 11pm and last 2 hours. so it ends at 1am next day.
 
           # TECHNICAL SPECIFICATIONS
-          - **DateTime Format:** All timestamps passed to tools must adhere to RFC 3339 (e.g., 2025-12-28T14:00:00Z).
           - **Calendar vs. List:** - Use `CalendarList` for user-specific UI settings (colors, hidden calendars).
               - Use `Calendars` for global metadata.
 
@@ -74,12 +51,12 @@ public class SampleAIController {
             - FREQ — The frequency with which the event should be repeated (such as DAILY or WEEKLY). Required.
             - INTERVAL — Works together with FREQ to specify how often the event should be repeated. For example, FREQ=DAILY;INTERVAL=2 means once every two days.
             - UNTIL — The date or date-time until which the event should be repeated (inclusive).
-            - COUNT — Number of times this event should be repeated.
+            - COUNT — Number of times this event should be repeated. This is NOT number of DAYS but number of occurrence of meetings!
             (You **should not use both UNTIL AND COUNT** in the same rule. Prefer using UNTIL over COUNT until necessarily needed for satisfying user's query.
             Determine the end condition: Is it a specific date or a number of occurrences?
             IF Date: Use UNTIL (format: YYYYMMDD) and OMIT COUNT.
             IF Occurrences: Use COUNT (integer) and OMIT UNTIL.)
-            - BYDAY — Days of the week on which the event should be repeated (SU, MO, TU, etc.). Other similar components include BYMONTH, BYYEARDAY, and BYHOUR.
+            - BYDAY — Days of the week on which the event should be repeated (SU, MO, TU, WE, TH, FR, SA). Other similar components include BYMONTH, BYYEARDAY, and BYHOUR.
 
           The RDATE property (prefixed by 'RDATE:') specifies additional dates or date-times when the event occurrences should happen. For example, RDATE;VALUE=DATE:19970101,19970120. Use this to add extra occurrences not covered by the RRULE.
           The EXDATE property (prefixed by 'EXDATE:') is similar to RDATE, but specifies dates or date-times when the event should not happen. That is, those occurrences should be excluded. This must point to a valid instance generated by the recurrence rule.
@@ -123,31 +100,37 @@ public class SampleAIController {
              "RRULE:FREQ=WEEKLY;UNTIL=20261231;COUNT=52"
           ],
           …
+
           """;
 
   private final ChatClient.Builder clientBuilder;
   private final CalendarListService calendarListService;
   private final EventsService eventsService;
+  private final TimeService timeService;
 
   @Autowired
   public SampleAIController(
       ChatClient.Builder clientBuilder,
       CalendarListService calendarListService,
-      EventsService eventsService) {
+      EventsService eventsService,
+      TimeService timeService) {
     this.clientBuilder = clientBuilder;
     this.calendarListService = calendarListService;
     this.eventsService = eventsService;
+    this.timeService = timeService;
   }
 
   @GetMapping("/ai")
   public String getAIResponse(@RequestParam String q) {
     ChatClient client = clientBuilder.build();
-    return client
-        .prompt()
-        .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
-        .user(q)
-        .tools(calendarListService, eventsService, new TimeService())
-        .call()
-        .content();
+    var v =
+        client
+            .prompt()
+            .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
+            .user(q)
+            .tools(timeService, calendarListService, eventsService)
+            .advisors(new SimpleLoggerAdvisor())
+            .call();
+    return v.content();
   }
 }
