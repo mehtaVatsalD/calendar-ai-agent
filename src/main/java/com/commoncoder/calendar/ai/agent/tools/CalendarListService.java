@@ -61,7 +61,7 @@ public class CalendarListService {
           @Nullable
           String syncToken)
       throws IOException {
-    LOGGER.debug("listCalendarList called");
+    LOGGER.info("listCalendarList called");
     Calendar.CalendarList.List list = calendar.calendarList().list();
     if (maxResults != null && maxResults > 0) {
       list.setMaxResults(maxResults);
@@ -91,7 +91,7 @@ public class CalendarListService {
       @ToolParam(description = GetUserCalendarListEntryTool.ToolParamDescriptions.CALENDAR_ID)
           String calendarId)
       throws IOException {
-    LOGGER.debug("getCalendarListEntry called for: {}", calendarId);
+    LOGGER.info("getCalendarListEntry called for: {}", calendarId);
     return calendar.calendarList().get(calendarId).execute();
   }
 }

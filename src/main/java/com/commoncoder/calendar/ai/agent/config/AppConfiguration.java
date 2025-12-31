@@ -100,11 +100,11 @@ public class AppConfiguration {
           new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
       restClientBuilder.requestInterceptor(
           (request, body, execution) -> {
-            LOGGER.debug("Request: " + new String(body, StandardCharsets.UTF_8));
+            LOGGER.info("Request: {}", new String(body, StandardCharsets.UTF_8));
             ClientHttpResponse response = execution.execute(request, body);
             String responseBody =
                 StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8);
-            LOGGER.debug("Response: " + responseBody);
+            LOGGER.info("Response: {}", responseBody);
             return response;
           });
     };

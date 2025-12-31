@@ -1,5 +1,6 @@
 package com.commoncoder.calendar.ai.agent.controller;
 
+import com.commoncoder.calendar.ai.agent.model.QueryClassification;
 import com.commoncoder.calendar.ai.agent.tools.CalendarListService;
 import com.commoncoder.calendar.ai.agent.tools.EventsService;
 import com.commoncoder.calendar.ai.agent.tools.TimeService;
@@ -28,11 +29,42 @@ public class SampleAIController {
           3. **Timezone:** If the user has not provided any specific timezone, ALWAYS get the timezone of user's primary calendar using 'get_user_calendar_list_entry' to answer any availability queries, listing events or creating any new event.
           You have to use correct timezone to fetch the data and not convert the out to expected timezone yourself.
           4. **Dates and time**: All input and output date and date-times should strictly follow RFC3339 format.
-          5. When checking availability, always set `singleEvents=true`. This is critical to ensure recurring events are expanded into individual instances to identify true overlaps.
-          6. **Reminders** When creating an event, don't add any reminders overrides, unless asked explicitly by users. Even if asked by users, check that they are not default as default values can be set in overrides.
+          5. When checking availability, always set `singleEvents=true`. This is critical to ensure recurring events are expanded into individual instances to identify true overlaps. But if you are just summarizing events, you should not expand all recurring set 'singleEvents=false'.
+          6. **Reminders** When creating an event, don't add any reminders overrides, unless asked explicitly by users.
           7. When asked for scheduling/creating new events, Please literally create new event, and  don't check for list existing events unless you are asked to check for user's availability. You can setup meeting at requested time even if user is busy at that time if explicitly asked by the user.
           8. For creating recurring event, first create the recurrence rules and internally check, reflect and think if they are valid as per knowledge given below. If not retry and create valid rules.
           9. Time range should be valid for creating events i.e. end time should be greater than start time. Internally check, reflect and think if they are valid. Sometimes user can be multi day events like starting 11pm and last 2 hours. so it ends at 1am next day.
+          10. For summarizing events, you should not fetch events for more than one year time window.
+            For example if today's date is 2nd Feb 2025, You can fetch events till 2nd Feb 2026 and not beyond that!
+           If user is explicitly asking to fetch for more time range, politely decline the request.
+
+          # STEPS TO DERIVE TIME TANGE FOR EVENT SUMMARY
+
+          For summarizing events or for creating events, you would need start time and end time to query events from users calendars or creating new event(s).
+          You would also need to understand timeZone context in which timeMin and timeMax are to be considered.
+          Sometime, users might provide explicit values for each of these three.
+          E.g. List and summarize all the events from 1st Feb 2026 to 15th Feb 2026 for Asia/Kolkata timeZone.
+          But sometimes you would have to think and derive these values, partially or completely.
+          For e.g. List all the events I have next week --> You would have to derive all three params.
+          List all the events I have today in Asia/Kolkata timezone --> You would need to derive timeMin and timeMax
+          Summarize all the meetings I had from 28th Feb 2025 --> You would need timezone and time values on 28th Feb 2025 date.
+
+          You should tactically handle this derivation.
+          1. First think if you know the timeZone. If you don't derive it. Did user mention any location? What is timezone at that location? If nothing is mentioned by user, get the timezone of user's primary calendar using 'get_user_calendar_list_entry' tool.
+          For e.g.
+          "Create a meeting to set new year plan tomorrow from 2pm to 5pm" --> Here, user has not mentioned any thing about timeZone. So timeZone should bbe fetched by calling 'get_user_calendar_list_entry' tool.
+          "Create a meeting to set new year plan tomorrow from 2pm to 5pm. I currently in Zurich" --> Here user is hinting that they are at Zurich, so 2pm to 5pm should be in Zurich's timeZone i.e. Europe/Zurich
+          "Create a meeting to set new year plan tomorrow from 2pm to 5pm in Asia/Kolkata timeZone" -->> here user has directly provided Asia/Kolkata timeZone to use.
+
+          2. Now that you have timezone, derive timeMin and timeMax. If you are provided explicit ranges, use it.
+          Else use tool 'get_current_datetime' to know which current date and time. Then you can think of logic to derive new date in context to today's date.
+          Example: Assume you got '2025-12-29T12:29:00+05:30' from 'get_current_datetime'
+          This means today's date is 29th Dec 2025.
+          Now if user asks for yesterday date we derive should be 28th Dec 2025.
+          If user asks for day after 3 days, date we derive should be 29->30->31->1st
+          1st Jan 2026. Note change in month and/or year might be needed!
+
+          In the final repose, write the derivation logic you used for deriving timeZone and time range if it was needed for the query.
 
           # TECHNICAL SPECIFICATIONS
           - **Calendar vs. List:** - Use `CalendarList` for user-specific UI settings (colors, hidden calendars).
@@ -101,6 +133,8 @@ public class SampleAIController {
           ],
           …
 
+          #
+
           """;
 
   private final ChatClient.Builder clientBuilder;
@@ -132,5 +166,49 @@ public class SampleAIController {
             .advisors(new SimpleLoggerAdvisor())
             .call();
     return v.content();
+  }
+
+  private static String CLASSIFICATION_SYSTEM_PROMPT =
+      """
+      ## You are a highly efficient Calendar Management Agent specializing in Google Calendar.
+
+      ### Based on the user query, classify the request into one of the query types.
+
+        'CheckAvailability': Specifically for checking availability or free time on user or guest calendars, without creating or managing events.
+
+        'EventCreation': Creating new single or recurring events (e.g., meetings, reminders, birthdays, focus time, OOO).
+
+        'EventUpdate': Updating details or metadata for existing events, including guest lists, attachments, conference data, location, or time.
+
+        'EventSummarization': For listing or summarizing all the events, meetings users have withing limted time period.
+
+        'EventAclChange': Modifying access control levels for events.
+
+        'CalendarCreation': Creating a new calendar.
+
+        'CalendarListUpdate': Adding or removing calendars from the user's calendar list.
+
+        'CalendarMetadataUpdate': Updating calendar metadata such as time zones, default reminders, colors, or titles.
+
+        'CalendarAclChange': Strictly for changing access and sharing options for a calendar.
+
+        'Unknown': Used if the query cannot be classified into any of the above categories.
+
+      You should not derive any query type other than the ones listed above.
+
+      ### Validation Logic
+
+      After deriving the values, perform an internal check to validate that the classifications are correct. If they are not, derive them again.
+      """;
+
+  @GetMapping("/ai/v2/")
+  public QueryClassification getAIV2Response(@RequestParam String q) {
+    ChatClient client = clientBuilder.build();
+    return client
+        .prompt()
+        .system(CLASSIFICATION_SYSTEM_PROMPT)
+        .user(q)
+        .call()
+        .entity(QueryClassification.class);
   }
 }

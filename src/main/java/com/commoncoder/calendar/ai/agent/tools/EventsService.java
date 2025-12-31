@@ -33,10 +33,8 @@ public class EventsService {
   @Tool(name = ListEventsTool.TOOL_NAME, description = ListEventsTool.TOOL_DESCRIPTION)
   public EventsResponse listEvents(
       @ToolParam(description = ListEventsTool.ToolParamDescriptions.CALENDAR_ID) String calendarId,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MIN) @Nullable
-          String timeMin,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MAX) @Nullable
-          String timeMax,
+      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MIN) String timeMin,
+      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MAX) String timeMax,
       @ToolParam(description = ListEventsTool.ToolParamDescriptions.Q, required = false) @Nullable
           String q,
       @ToolParam(description = ListEventsTool.ToolParamDescriptions.MAX_RESULTS, required = false)
@@ -64,7 +62,7 @@ public class EventsService {
           @Nullable
           String updatedMin)
       throws IOException {
-    LOGGER.debug(
+    LOGGER.info(
         "listEvents called with timeMin: {}, timeMax: {}, timezone: {}",
         timeMin,
         timeMax,
@@ -114,7 +112,7 @@ public class EventsService {
           String calendarId,
       @ToolParam(description = "Event request body") InsertEventRequest insertEventRequest)
       throws IOException {
-    LOGGER.debug("insertEvent called");
+    LOGGER.info("insertEvent called");
     Event event = new Event();
     event.setSummary(insertEventRequest.summary());
 
@@ -165,6 +163,7 @@ public class EventsService {
                           .setMethod(remindersOverrides.method())
                           .setMinutes(remindersOverrides.minutes()))
               .toList());
+      reminders.setUseDefault(false);
     } else {
       reminders.setUseDefault(true);
     }
