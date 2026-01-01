@@ -25,7 +25,7 @@ public class TimeService {
     ZoneId zoneId = ZoneId.of(timeZone);
     ZonedDateTime now = ZonedDateTime.now(zoneId);
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    LOGGER.debug("Current time at timezone {} is {}", timeZone, now.format(formatter));
+    LOGGER.info("Current time at timezone {} is {}", timeZone, now.format(formatter));
     return now.format(formatter);
   }
 
@@ -38,7 +38,7 @@ public class TimeService {
     ZoneId zoneId = ZoneId.of(timeZone);
     ZonedDateTime now = ZonedDateTime.now(zoneId);
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    LOGGER.debug("Current date at timezone {} is {}", timeZone, now.format(formatter));
+    LOGGER.info("Current date at timezone {} is {}", timeZone, now.format(formatter));
     return now.format(formatter);
   }
 }
