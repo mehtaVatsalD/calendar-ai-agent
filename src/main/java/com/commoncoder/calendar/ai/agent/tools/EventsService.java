@@ -1,15 +1,17 @@
 package com.commoncoder.calendar.ai.agent.tools;
 
 import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.ListEventsTool;
+import com.commoncoder.calendar.ai.agent.tools.model.Attendee;
 import com.commoncoder.calendar.ai.agent.tools.model.EventItem;
 import com.commoncoder.calendar.ai.agent.tools.request.InsertEventRequest;
+import com.commoncoder.calendar.ai.agent.tools.request.UpdateEventRequest;
 import com.commoncoder.calendar.ai.agent.tools.response.EventsResponse;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.*;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,6 +171,97 @@ public class EventsService {
     }
     event.setReminders(reminders);
     return toEventItem(calendar.events().insert(calendarId, event).execute());
+  }
+
+  @Tool(
+      name = "patch_event",
+      description = "Patches and updates an existing and already created event on the calendar.")
+  EventItem updateEvent(
+      @ToolParam(
+              description =
+                  "Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the 'primary' keyword.")
+          String calendarId,
+      @ToolParam(description = "Event identifier. Event that is to be modified") String eventId,
+      @ToolParam(description = "Event request body. Set only the fields that are to be updated")
+          UpdateEventRequest updateEventRequest)
+      throws IOException {
+    LOGGER.info("patchEvent called");
+    LOGGER.info("fetching existing event: {}", eventId);
+    Event event = calendar.events().get(calendarId, eventId).execute();
+
+    if (updateEventRequest.summary() != null && !updateEventRequest.summary().isEmpty()) {
+      event.setSummary(updateEventRequest.summary());
+    }
+    if (updateEventRequest.start() != null) {
+      event.setStart(toEventDateTime(updateEventRequest.start()));
+    }
+    if (updateEventRequest.end() != null) {
+      event.setEnd(toEventDateTime(updateEventRequest.end()));
+    }
+
+    if (updateEventRequest.visibility() != null) {
+      event.setVisibility(updateEventRequest.visibility());
+    }
+    if (updateEventRequest.description() != null) {
+      event.setDescription(updateEventRequest.description());
+    }
+    Set<EventAttendee> finalAttendees = new HashSet<>(event.getAttendees());
+    if (updateEventRequest.attendeesToRemove() != null) {
+      Set<String> emailsToRemove =
+          updateEventRequest.attendeesToRemove().stream()
+              .map(Attendee::email)
+              .collect(Collectors.toCollection(HashSet::new));
+      finalAttendees =
+          finalAttendees.stream()
+              .filter(eventAttendee -> !emailsToRemove.contains(eventAttendee.getEmail()))
+              .collect(Collectors.toCollection(HashSet::new));
+    }
+    if (updateEventRequest.attendeesToAdd() != null) {
+      List<EventAttendee> attendeesToAdd =
+          updateEventRequest.attendeesToAdd().stream()
+              .map(
+                  attendees ->
+                      new EventAttendee()
+                          .setEmail(attendees.email())
+                          .setOptional(attendees.optional()))
+              .toList();
+      finalAttendees.addAll(attendeesToAdd);
+    }
+    event.setAttendees(new ArrayList<>(finalAttendees));
+    if (updateEventRequest.guestsCanInviteOthers() != null) {
+      event.setGuestsCanInviteOthers(updateEventRequest.guestsCanInviteOthers());
+    }
+    if (updateEventRequest.guestsCanModify() != null) {
+      event.setGuestsCanModify(updateEventRequest.guestsCanModify());
+    }
+    if (updateEventRequest.guestsCanSeeOtherGuests() != null) {
+      event.setGuestsCanSeeOtherGuests(updateEventRequest.guestsCanSeeOtherGuests());
+    }
+
+    if (updateEventRequest.location() != null) {
+      event.setLocation(updateEventRequest.location());
+    }
+
+    if (updateEventRequest.recurrence() != null) {
+      event.setRecurrence(updateEventRequest.recurrence());
+    }
+    Event.Reminders reminders = new Event.Reminders();
+    if (updateEventRequest.remindersOverrides() != null) {
+      reminders.setOverrides(
+          updateEventRequest.remindersOverrides().stream()
+              .map(
+                  remindersOverrides ->
+                      new EventReminder()
+                          .setMethod(remindersOverrides.method())
+                          .setMinutes(remindersOverrides.minutes()))
+              .toList());
+      reminders.setUseDefault(false);
+    } else {
+      reminders.setUseDefault(true);
+    }
+    event.setReminders(reminders);
+    LOGGER.info("patching event: {}", eventId);
+    return toEventItem(calendar.events().update(calendarId, eventId, event).execute());
   }
 
   private com.commoncoder.calendar.ai.agent.tools.model.DateTime toDateTime(
