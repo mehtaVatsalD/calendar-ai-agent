@@ -1,6 +1,6 @@
-package com.commoncoder.calendar.ai.agent.tools;
+package com.commoncoder.calendar.ai.agent.tools.impl;
 
-import com.commoncoder.calendar.ai.agent.tools.constants.ToolDescriptions.ListEventsTool;
+import com.commoncoder.calendar.ai.agent.tools.EventTools;
 import com.commoncoder.calendar.ai.agent.tools.model.Attendee;
 import com.commoncoder.calendar.ai.agent.tools.model.EventItem;
 import com.commoncoder.calendar.ai.agent.tools.request.InsertEventRequest;
@@ -15,54 +15,35 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EventsService {
+public class EventToolsImpl implements EventTools {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventsService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventToolsImpl.class);
 
   private final Calendar calendar;
 
   @Autowired
-  public EventsService(Calendar calendar) {
+  public EventToolsImpl(Calendar calendar) {
     this.calendar = calendar;
   }
 
-  @Tool(name = ListEventsTool.TOOL_NAME, description = ListEventsTool.TOOL_DESCRIPTION)
+  @Override
   public EventsResponse listEvents(
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.CALENDAR_ID) String calendarId,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MIN) String timeMin,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_MAX) String timeMax,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.Q, required = false) @Nullable
-          String q,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.MAX_RESULTS, required = false)
-          @Nullable
-          Integer maxResults,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.SINGLE_EVENTS, required = false)
-          @Nullable
-          Boolean singleEvents,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.ORDER_BY, required = false)
-          @Nullable
-          String orderBy,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.EVENT_TYPES, required = false)
-          @Nullable
-          String eventTypes,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.SHOW_DELETED, required = false)
-          @Nullable
-          Boolean showDeleted,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.PAGE_TOKEN, required = false)
-          @Nullable
-          String pageToken,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.TIME_ZONE, required = false)
-          @Nullable
-          String timeZone,
-      @ToolParam(description = ListEventsTool.ToolParamDescriptions.UPDATED_MIN, required = false)
-          @Nullable
-          String updatedMin)
+      String calendarId,
+      String timeMin,
+      String timeMax,
+      @Nullable String q,
+      @Nullable Integer maxResults,
+      @Nullable Boolean singleEvents,
+      @Nullable String orderBy,
+      @Nullable String eventTypes,
+      @Nullable Boolean showDeleted,
+      @Nullable String pageToken,
+      @Nullable String timeZone,
+      @Nullable String updatedMin)
       throws IOException {
     LOGGER.info(
         "listEvents called with timeMin: {}, timeMax: {}, timezone: {}",
@@ -106,13 +87,8 @@ public class EventsService {
     return toEventsResponse(list.execute());
   }
 
-  @Tool(name = "insert_event", description = "Creates an event on the calendar.")
-  EventItem insertEvent(
-      @ToolParam(
-              description =
-                  "Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the 'primary' keyword.")
-          String calendarId,
-      @ToolParam(description = "Event request body") InsertEventRequest insertEventRequest)
+  @Override
+  public EventItem insertEvent(String calendarId, InsertEventRequest insertEventRequest)
       throws IOException {
     LOGGER.info("insertEvent called");
     Event event = new Event();
@@ -173,18 +149,9 @@ public class EventsService {
     return toEventItem(calendar.events().insert(calendarId, event).execute());
   }
 
-  @Tool(
-      name = "patch_event",
-      description = "Patches and updates an existing and already created event on the calendar.")
-  EventItem updateEvent(
-      @ToolParam(
-              description =
-                  "Calendar identifier. To retrieve calendar IDs call the calendarList.list method. If you want to access the primary calendar of the currently logged in user, use the 'primary' keyword.")
-          String calendarId,
-      @ToolParam(description = "Event identifier. Event that is to be modified") String eventId,
-      @ToolParam(description = "Event request body. Set only the fields that are to be updated")
-          UpdateEventRequest updateEventRequest)
-      throws IOException {
+  @Override
+  public EventItem updateEvent(
+      String calendarId, String eventId, UpdateEventRequest updateEventRequest) throws IOException {
     LOGGER.info("patchEvent called");
     LOGGER.info("fetching existing event: {}", eventId);
     Event event = calendar.events().get(calendarId, eventId).execute();

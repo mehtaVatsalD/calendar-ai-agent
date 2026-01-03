@@ -37,10 +37,16 @@ public record UpdateEventRequest(
             required = false)
         @Nullable
         DateTime end,
-    @ToolParam(description = "List of the attendees of attendees to be added to the event.", required = false) @Nullable
+    @ToolParam(
+            description = "List of the attendees of attendees to be added to the event.",
+            required = false)
+        @Nullable
         List<Attendee> attendeesToAdd,
-    @ToolParam(description = "List of the attendees of attendees to be removed from the event.", required = false) @Nullable
-    List<Attendee> attendeesToRemove,
+    @ToolParam(
+            description = "List of the attendees of attendees to be removed from the event.",
+            required = false)
+        @Nullable
+        List<Attendee> attendeesToRemove,
     @ToolParam(
             description =
                 "Whether attendees other than the organizer can invite others to the event. Optional. The default is True.",

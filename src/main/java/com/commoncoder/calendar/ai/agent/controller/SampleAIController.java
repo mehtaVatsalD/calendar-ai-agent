@@ -1,9 +1,9 @@
 package com.commoncoder.calendar.ai.agent.controller;
 
 import com.commoncoder.calendar.ai.agent.model.QueryClassification;
-import com.commoncoder.calendar.ai.agent.tools.CalendarListService;
-import com.commoncoder.calendar.ai.agent.tools.EventsService;
-import com.commoncoder.calendar.ai.agent.tools.TimeService;
+import com.commoncoder.calendar.ai.agent.tools.CalendarListTools;
+import com.commoncoder.calendar.ai.agent.tools.EventTools;
+import com.commoncoder.calendar.ai.agent.tools.TimeTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,39 +136,7 @@ public class SampleAIController {
           #
 
           """;
-
-  private final ChatClient.Builder clientBuilder;
-  private final CalendarListService calendarListService;
-  private final EventsService eventsService;
-  private final TimeService timeService;
-
-  @Autowired
-  public SampleAIController(
-      ChatClient.Builder clientBuilder,
-      CalendarListService calendarListService,
-      EventsService eventsService,
-      TimeService timeService) {
-    this.clientBuilder = clientBuilder;
-    this.calendarListService = calendarListService;
-    this.eventsService = eventsService;
-    this.timeService = timeService;
-  }
-
-  @GetMapping("/ai")
-  public String getAIResponse(@RequestParam String q) {
-    ChatClient client = clientBuilder.build();
-    var v =
-        client
-            .prompt()
-            .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
-            .user(q)
-            .tools(timeService, calendarListService, eventsService)
-            .advisors(new SimpleLoggerAdvisor())
-            .call();
-    return v.content();
-  }
-
-  private static String CLASSIFICATION_SYSTEM_PROMPT =
+  private static final String CLASSIFICATION_SYSTEM_PROMPT =
       """
       ## You are a highly efficient Calendar Management Agent specializing in Google Calendar.
 
@@ -200,6 +168,36 @@ public class SampleAIController {
 
       After deriving the values, perform an internal check to validate that the classifications are correct. If they are not, derive them again.
       """;
+  private final ChatClient.Builder clientBuilder;
+  private final CalendarListTools calendarListTools;
+  private final EventTools eventsTools;
+  private final TimeTools timeTools;
+
+  @Autowired
+  public SampleAIController(
+      ChatClient.Builder clientBuilder,
+      CalendarListTools calendarListTools,
+      EventTools eventsTools,
+      TimeTools timeTools) {
+    this.clientBuilder = clientBuilder;
+    this.calendarListTools = calendarListTools;
+    this.eventsTools = eventsTools;
+    this.timeTools = timeTools;
+  }
+
+  @GetMapping("/ai")
+  public String getAIResponse(@RequestParam String q) {
+    ChatClient client = clientBuilder.build();
+    var v =
+        client
+            .prompt()
+            .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
+            .user(q)
+            .tools(timeTools, calendarListTools, eventsTools)
+            .advisors(new SimpleLoggerAdvisor())
+            .call();
+    return v.content();
+  }
 
   @GetMapping("/ai/v2/")
   public QueryClassification getAIV2Response(@RequestParam String q) {
