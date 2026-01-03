@@ -27,6 +27,7 @@ public final class SystemPromptLibrary {
           10. For summarizing events, you should not fetch events for more than one year time window.
             For example if today's date is 2nd Feb 2025, You can fetch events till 2nd Feb 2026 and not beyond that!
            If user is explicitly asking to fetch for more time range, politely decline the request.
+          11. For finding any specific event be it for summarizing it or for patching/updating it, you should keep some buffer around start and end time to correctly find the event.
 
           # STEPS TO DERIVE TIME TANGE FOR EVENT SUMMARY
 
