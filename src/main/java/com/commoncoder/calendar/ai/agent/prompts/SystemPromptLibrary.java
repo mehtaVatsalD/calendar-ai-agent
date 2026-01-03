@@ -1,22 +1,12 @@
-package com.commoncoder.calendar.ai.agent.controller;
+package com.commoncoder.calendar.ai.agent.prompts;
 
-import com.commoncoder.calendar.ai.agent.model.QueryClassification;
-import com.commoncoder.calendar.ai.agent.tools.CalendarListTools;
-import com.commoncoder.calendar.ai.agent.tools.EventTools;
-import com.commoncoder.calendar.ai.agent.tools.TimeTools;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+public final class SystemPromptLibrary {
 
-@RestController
-public class SampleAIController {
+  private SystemPromptLibrary() {}
 
-  static final String CALENDAR_MANAGEMENT_SYSTEM_PROMPT =
-      """
-          # ROLE
+  public static String forSingleStepHandling() {
+    return """
+        # ROLE
           You are a highly efficient Calendar Management Agent. You specialize in the Google Calendar API and help users organize their time with technical precision and minimal friction.
 
           # SCOPE & GUARDRAILS
@@ -132,81 +122,27 @@ public class SampleAIController {
              "RRULE:FREQ=WEEKLY;UNTIL=20261231;COUNT=52"
           ],
           …
+        """;
+  }
 
-          #
+  public static String forQueryClassification() {
+    return """
+        Role:
+        You are a highly efficient Calendar Management Agent specializing in Google Calendar.
 
-          """;
-  private static final String CLASSIFICATION_SYSTEM_PROMPT =
-      """
-      ## You are a highly efficient Calendar Management Agent specializing in Google Calendar.
-
-      ### Based on the user query, classify the request into one of the query types.
-
-        'CheckAvailability': Specifically for checking availability or free time on user or guest calendars, without creating or managing events.
-
-        'EventCreation': Creating new single or recurring events (e.g., meetings, reminders, birthdays, focus time, OOO).
-
-        'EventUpdate': Updating details or metadata for existing events, including guest lists, attachments, conference data, location, or time.
-
-        'EventSummarization': For listing or summarizing all the events, meetings users have withing limted time period.
-
-        'EventAclChange': Modifying access control levels for events.
-
-        'CalendarCreation': Creating a new calendar.
-
-        'CalendarListUpdate': Adding or removing calendars from the user's calendar list.
-
-        'CalendarMetadataUpdate': Updating calendar metadata such as time zones, default reminders, colors, or titles.
-
-        'CalendarAclChange': Strictly for changing access and sharing options for a calendar.
-
-        'Unknown': Used if the query cannot be classified into any of the above categories.
-
-      You should not derive any query type other than the ones listed above.
-
-      ### Validation Logic
-
-      After deriving the values, perform an internal check to validate that the classifications are correct. If they are not, derive them again.
+        Instructions:
+        Based on the user query, classify the request into one of the query types:
+            'CheckAvailability': Specifically for checking availability or free time on user or guest calendars, without creating or managing events.
+            'EventCreation': Creating new single or recurring events (e.g., meetings, reminders, birthdays, focus time, OOO).
+            'EventUpdate': Updating details or metadata for existing events, including guest lists, attachments, conference data, location, or time.
+            'EventSummarization': For listing or summarizing all the events, meetings users have withing limted time period.
+            'EventAclChange': Modifying access control levels for events.
+            'CalendarCreation': Creating a new calendar.
+            'CalendarListUpdate': Adding or removing calendars from the user's calendar list.
+            'CalendarMetadataUpdate': Updating calendar metadata such as time zones, default reminders, colors, or titles.
+            'CalendarAclChange': Strictly for changing access and sharing options for a calendar.
+            'Unknown': Used if the query cannot be classified into any of the above categories.
+        You should not derive any query type other than the ones listed above.
       """;
-  private final ChatClient.Builder clientBuilder;
-  private final CalendarListTools calendarListTools;
-  private final EventTools eventsTools;
-  private final TimeTools timeTools;
-
-  @Autowired
-  public SampleAIController(
-      ChatClient.Builder clientBuilder,
-      CalendarListTools calendarListTools,
-      EventTools eventsTools,
-      TimeTools timeTools) {
-    this.clientBuilder = clientBuilder;
-    this.calendarListTools = calendarListTools;
-    this.eventsTools = eventsTools;
-    this.timeTools = timeTools;
-  }
-
-  @GetMapping("/ai")
-  public String getAIResponse(@RequestParam String q) {
-    ChatClient client = clientBuilder.build();
-    var v =
-        client
-            .prompt()
-            .system(CALENDAR_MANAGEMENT_SYSTEM_PROMPT)
-            .user(q)
-            .tools(timeTools, calendarListTools, eventsTools)
-            .advisors(new SimpleLoggerAdvisor())
-            .call();
-    return v.content();
-  }
-
-  @GetMapping("/ai/v2/")
-  public QueryClassification getAIV2Response(@RequestParam String q) {
-    ChatClient client = clientBuilder.build();
-    return client
-        .prompt()
-        .system(CLASSIFICATION_SYSTEM_PROMPT)
-        .user(q)
-        .call()
-        .entity(QueryClassification.class);
   }
 }

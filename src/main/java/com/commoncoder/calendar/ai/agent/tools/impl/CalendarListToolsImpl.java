@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CalendarListToolsImpl implements CalendarListTools {
+public final class CalendarListToolsImpl implements CalendarListTools {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CalendarListToolsImpl.class);
 

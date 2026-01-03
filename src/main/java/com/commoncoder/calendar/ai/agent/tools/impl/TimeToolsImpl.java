@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
-public class TimeToolsImpl implements TimeTools {
+public final class TimeToolsImpl implements TimeTools {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TimeToolsImpl.class);
 
