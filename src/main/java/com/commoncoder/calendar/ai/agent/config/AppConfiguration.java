@@ -1,6 +1,10 @@
 package com.commoncoder.calendar.ai.agent.config;
 
 import com.commoncoder.calendar.ai.agent.annotations.CalendarAPIScopes;
+import com.commoncoder.calendar.ai.agent.annotations.QueryHandlerRegistry;
+import com.commoncoder.calendar.ai.agent.enums.QueryType;
+import com.commoncoder.calendar.ai.agent.queryhandlers.EventUpdateQueryHandler;
+import com.commoncoder.calendar.ai.agent.queryhandlers.UserQueryHandler;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -18,6 +22,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -108,5 +113,12 @@ public class AppConfiguration {
             return response;
           });
     };
+  }
+
+  @Bean
+  @QueryHandlerRegistry
+  public Map<QueryType, UserQueryHandler> getUserQueryHandlers(
+      EventUpdateQueryHandler eventUpdateQueryHandler) {
+    return Map.of(QueryType.EVENT_UPDATE, eventUpdateQueryHandler);
   }
 }

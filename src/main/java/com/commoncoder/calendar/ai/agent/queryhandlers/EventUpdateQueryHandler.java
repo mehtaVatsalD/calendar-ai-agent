@@ -9,7 +9,9 @@ import com.commoncoder.calendar.ai.agent.tools.TimeTools;
 import java.util.Map;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
 public class EventUpdateQueryHandler implements UserQueryHandler {
 
   private final ChatClient.Builder clientBuilder;
