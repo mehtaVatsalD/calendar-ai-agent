@@ -1,8 +1,8 @@
 package com.commoncoder.calendar.ai.agent.prompts;
 
-public final class SystemPromptLibrary {
+public final class SimpleAIFlowPromptLibrary {
 
-  private SystemPromptLibrary() {}
+  private SimpleAIFlowPromptLibrary() {}
 
   public static String forSingleStepHandling() {
     return """

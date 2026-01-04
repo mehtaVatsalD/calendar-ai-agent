@@ -1,7 +1,7 @@
 package com.commoncoder.calendar.ai.agent.controller;
 
 import com.commoncoder.calendar.ai.agent.model.QueryClassification;
-import com.commoncoder.calendar.ai.agent.prompts.SystemPromptLibrary;
+import com.commoncoder.calendar.ai.agent.prompts.SimpleAIFlowPromptLibrary;
 import com.commoncoder.calendar.ai.agent.tools.CalendarListTools;
 import com.commoncoder.calendar.ai.agent.tools.EventTools;
 import com.commoncoder.calendar.ai.agent.tools.TimeTools;
@@ -37,7 +37,7 @@ public class SimpleAIController {
     var v =
         client
             .prompt()
-            .system(SystemPromptLibrary.forSingleStepHandling())
+            .system(SimpleAIFlowPromptLibrary.forSingleStepHandling())
             .user(q)
             .tools(timeTools, calendarListTools, eventsTools)
             .call();
@@ -49,7 +49,7 @@ public class SimpleAIController {
     ChatClient client = clientBuilder.build();
     return client
         .prompt()
-        .system(SystemPromptLibrary.forQueryClassification())
+        .system(SimpleAIFlowPromptLibrary.forQueryClassification())
         .user(q)
         .call()
         .entity(QueryClassification.class);

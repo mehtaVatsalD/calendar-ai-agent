@@ -2,9 +2,9 @@ package com.commoncoder.calendar.ai.agent.prompts;
 
 import com.commoncoder.calendar.ai.agent.model.FindEventForUpdateContext;
 
-public final class EventManagementPrompts {
+public final class EventUpdatePrompts {
 
-  private EventManagementPrompts() {}
+  private EventUpdatePrompts() {}
 
   /**
    * System prompt for allowing model to know context for updating event. Use {@link
