@@ -1,6 +1,6 @@
 package com.commoncoder.calendar.ai.agent.model;
 
-public record FindEventForUpdateContext(
+public record FindEventToUpdateContext(
     String timezone,
     String timeMin,
     String timeMax,
